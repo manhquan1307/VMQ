@@ -1,60 +1,96 @@
 package io.vmq.broker.server;
 
+import io.vmq.broker.session.ConsumerSession;
+import io.vmq.broker.session.ProducerSession;
 import io.vmq.broker.topic.TopicManager;
 import io.vmq.broker.topic.TopicQueue;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 
 public class BrokerConnectionHandler {
 
     private final Socket socket;
-
     private final TopicManager topicManager;
 
-    public BrokerConnectionHandler(
-            Socket socket,
-            TopicManager topicManager
-    ) {
+    public BrokerConnectionHandler(Socket socket, TopicManager topicManager) {
         this.socket = socket;
         this.topicManager = topicManager;
     }
 
     public void handle() throws Exception {
+        try (Socket s = socket) {
+            BufferedReader reader =
+                    new BufferedReader(
+                            new InputStreamReader(s.getInputStream(), StandardCharsets.UTF_8));
+            BufferedWriter writer =
+                    new BufferedWriter(
+                            new OutputStreamWriter(s.getOutputStream(), StandardCharsets.UTF_8));
 
-        BufferedReader reader =
-                new BufferedReader(
-                        new InputStreamReader(
-                                socket.getInputStream()
-                        )
-                );
+            String first = reader.readLine();
+            if (first == null) {
+                return;
+            }
 
-        BufferedWriter writer =
-                new BufferedWriter(
-                        new OutputStreamWriter(
-                                socket.getOutputStream()
-                        )
-                );
+            String trimmed = first.trim();
+            String[] head = trimmed.split("\\s+", 2);
+            if (head.length == 0) {
+                return;
+            }
 
-        String line;
+            String role = head[0];
 
-        while ((line = reader.readLine()) != null) {
+            if ("PUBLISH".equalsIgnoreCase(role)) {
+                String[] publishParts = trimmed.split("\\s+", 3);
+                if (publishParts.length < 3) {
+                    writer.write("ERR PUBLISH needs topic and message");
+                    writer.newLine();
+                    writer.flush();
+                    return;
+                }
+                String pubTopic = publishParts[1];
+                String msg = publishParts[2];
+                topicManager.getOrCreateTopic(pubTopic).publish(msg);
+                writer.write("OK");
+                writer.newLine();
+                writer.flush();
+                return;
+            }
 
-            String[] parts = line.split(" ", 3);
+            if (head.length < 2) {
+                writer.write("ERR expected PRODUCER <topic> or CONSUMER <topic>");
+                writer.newLine();
+                writer.flush();
+                return;
+            }
 
-            String command = parts[0];
+            String topic = head[1].trim();
+            if (topic.isEmpty()) {
+                writer.write("ERR topic name is blank");
+                writer.newLine();
+                writer.flush();
+                return;
+            }
 
-            if ("PUBLISH".equals(command)) {
+            TopicQueue topicQueue = topicManager.getOrCreateTopic(topic);
 
-                String topic = parts[1];
-                String message = parts[2];
-
-                TopicQueue topicQueue =
-                        topicManager.getOrCreateTopic(topic);
-
-                topicQueue.publish(message);
-
-                writer.write("OK\n");
+            if ("PRODUCER".equalsIgnoreCase(role)) {
+                writer.write("OK");
+                writer.newLine();
+                writer.flush();
+                new ProducerSession(topicQueue, reader, writer).run();
+            } else if ("CONSUMER".equalsIgnoreCase(role)) {
+                writer.write("OK");
+                writer.newLine();
+                writer.flush();
+                new ConsumerSession(topicQueue, writer).run();
+            } else {
+                writer.write("ERR unknown command: use PRODUCER, CONSUMER, or PUBLISH");
+                writer.newLine();
                 writer.flush();
             }
         }

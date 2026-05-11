@@ -1,5 +1,6 @@
 package io.vmq.broker.topic;
 
+import java.util.Objects;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -7,15 +8,15 @@ public class TopicQueue {
 
     private final String topicName;
 
-    private final BlockingQueue<String> messages =
-            new LinkedBlockingQueue<>();
+    private final BlockingQueue<String> messages = new LinkedBlockingQueue<>();
 
     public TopicQueue(String topicName) {
         this.topicName = topicName;
     }
 
-    public void publish(String message) {
-        messages.offer(message);
+    public void publish(String message) throws InterruptedException {
+        Objects.requireNonNull(message, "message");
+        messages.put(message);
     }
 
     public String consume() throws InterruptedException {

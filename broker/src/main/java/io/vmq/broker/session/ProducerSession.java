@@ -2,36 +2,29 @@ package io.vmq.broker.session;
 
 import io.vmq.broker.topic.TopicQueue;
 
-import java.io.DataInputStream;
-import java.io.EOFException;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.IOException;
-import java.util.logging.Logger;
 
-/**
- * After handshake: each {@link DataInputStream#readUTF()} from the client is published to the topic.
- */
 public final class ProducerSession {
 
-    private static final Logger LOG = Logger.getLogger(ProducerSession.class.getName());
-
     private final TopicQueue queue;
-    private final DataInputStream in;
+    private final BufferedReader in;
+    private final BufferedWriter out;
 
-    public ProducerSession(TopicQueue queue, DataInputStream in) {
+    public ProducerSession(TopicQueue queue, BufferedReader in, BufferedWriter out) {
         this.queue = queue;
         this.in = in;
+        this.out = out;
     }
 
     public void run() throws IOException, InterruptedException {
-        while (true) {
-            String message;
-            try {
-                message = in.readUTF();
-            } catch (EOFException e) {
-                LOG.fine("producer closed socket");
-                return;
-            }
-            queue.publish(message);
+        String line;
+        while ((line = in.readLine()) != null) {
+            queue.publish(line);
+            out.write("OK");
+            out.newLine();
+            out.flush();
         }
     }
 }
