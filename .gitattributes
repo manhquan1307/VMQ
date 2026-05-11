@@ -1,0 +1,28 @@
+* text=auto
+
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+*.sh text eol=lf
+gradlew text eol=lf
+
+*.java text diff=java
+*.kt text diff=kotlin
+*.kts text diff=kotlin
+*.gradle text diff=java
+*.xml text
+*.properties text
+*.md text
+*.json text
+*.yml text
+*.yaml text
+
+*.jar binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
