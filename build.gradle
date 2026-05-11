@@ -1,0 +1,13 @@
+plugins {
+    id 'base'
+}
+
+group = 'io.vmq'
+version = '1.0-SNAPSHOT'
+
+description = 'VMQ — high-performance distributed event streaming platform'
+
+subprojects {
+    group = rootProject.group
+    version = rootProject.version
+}

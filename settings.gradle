@@ -1,0 +1,14 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        mavenCentral()
+    }
+}
+
+rootProject.name = 'vmq'
+
+include 'common'
+include 'protocol'
+include 'storage'
+include 'broker'
+include 'client'

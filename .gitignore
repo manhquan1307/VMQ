@@ -11,7 +11,10 @@
 .env
 .env.*
 
-# IntelliJ IDEA
+# IntelliJ IDEA — entire `.idea` at repository root
+/.idea/
+
+# IntelliJ IDEA (partial ignores under subprojects)
 .idea/modules.xml
 .idea/jarRepositories.xml
 .idea/compiler.xml
